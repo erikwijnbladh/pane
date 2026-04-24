@@ -1,7 +1,6 @@
 import { useState, useRef, KeyboardEvent } from 'react'
 import { MousePointer2, Hand, ZoomIn } from 'lucide-react'
-import ToolbarButton from './ToolbarButton'
-
+import { ToolbarButton } from './ToolbarButton'
 
 const tools = [
   { id: 'select', label: 'Select (V)', icon: MousePointer2 },

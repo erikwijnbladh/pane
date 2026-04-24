@@ -28,7 +28,7 @@ export default function Preview() {
   return (
     <>
       <HeightReporter />
-      <div className="flex min-h-[260px] items-center justify-center p-8">
+      <div style={{ minHeight: 260, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 32 }}>
         <Suspense fallback={null}>
           <Component />
         </Suspense>
