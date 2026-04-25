@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import Canvas from './Canvas'
 import Editor from './Editor'
+import TokenPill from './TokenPill'
 
 const API = 'http://localhost:3001/api'
 
@@ -18,6 +19,8 @@ export default function App() {
   const [selected, setSelected] = useState<string | null>(null)
   const [openTabs, setOpenTabs] = useState<string[]>([])
   const [code, setCode] = useState('')
+  const [savedCode, setSavedCode] = useState('')
+  const [tokenSaved, setTokenSaved] = useState(false)
   const [files, setFiles] = useState<string[]>([])
   const [editorWidth, setEditorWidth] = useState(480)
   const deletedStack = useRef<{ name: string; content: string; pane: Pane }[]>([])
@@ -63,42 +66,43 @@ export default function App() {
     setPanes(data.map((f, i) => ({
       id: f.replace('.tsx', ''),
       name: f.replace('.tsx', ''),
-      x: 60 + i * 340,
+      x: 60 + i * 480,
       y: 80,
-      width: 320,
+      width: 460,
       height: 260,
     })))
   }
 
   async function openTab(filename: string) {
-    const name = filename.replace('.tsx', '')
     const res = await fetch(`${API}/files/${filename}`)
     const { content } = await res.json()
     setCode(content)
-    setSelected(name)
-    setOpenTabs(prev => prev.includes(name) ? prev : [...prev, name])
+    setSavedCode(content)
+    setSelected(filename)
+    setOpenTabs(prev => prev.includes(filename) ? prev : [...prev, filename])
   }
 
-  function closeTab(name: string) {
+  function closeTab(filename: string) {
     setOpenTabs(prev => {
-      const next = prev.filter(t => t !== name)
-      if (selected === name) {
+      const next = prev.filter(t => t !== filename)
+      if (selected === filename) {
         const nextSelected = next.length > 0 ? next[next.length - 1] : null
         setSelected(nextSelected)
         if (nextSelected) {
-          fetch(`${API}/files/${nextSelected}.tsx`).then(r => r.json()).then(d => setCode(d.content))
+          fetch(`${API}/files/${nextSelected}`).then(r => r.json()).then(d => setCode(d.content))
         }
       }
       return next
     })
   }
 
-  async function saveCode(name: string, content: string) {
-    await fetch(`${API}/files/${name}.tsx`, {
+  async function saveCode(filename: string, content: string) {
+    await fetch(`${API}/files/${filename}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ content }),
     })
+    setSavedCode(content)
   }
 
   async function createComponent() {
@@ -111,7 +115,7 @@ export default function App() {
       body: JSON.stringify({ content }),
     })
     setFiles(prev => [...prev, `${name}.tsx`])
-    setPanes(prev => [...prev, { id: name, name, x: 60 + prev.length * 340, y: 80, width: 320, height: 260 }])
+    setPanes(prev => [...prev, { id: name, name, x: 60 + prev.length * 480, y: 80, width: 460, height: 260 }])
     openTab(`${name}.tsx`)
   }
 
@@ -123,7 +127,7 @@ export default function App() {
     await fetch(`${API}/files/${name}.tsx`, { method: 'DELETE' })
     setFiles(prev => prev.filter(f => f !== `${name}.tsx`))
     setPanes(prev => prev.filter(p => p.id !== name))
-    closeTab(name)
+    closeTab(`${name}.tsx`)
   }
 
   async function undoDelete() {
@@ -144,15 +148,15 @@ export default function App() {
       <div ref={editorPanelRef} className="relative flex shrink-0 flex-col min-w-[200px] max-w-[800px]">
         {/* Tabs */}
         <div className="flex h-[38px] shrink-0 items-center overflow-x-auto border-b border-[#2d2d2d] bg-[#252526]">
-          {openTabs.map(name => (
+          {openTabs.map(filename => (
             <div
-              key={name}
-              onClick={() => openTab(`${name}.tsx`)}
-              className={`flex h-full cursor-pointer items-center gap-1.5 whitespace-nowrap border-r border-[#2d2d2d] px-[10px] pl-[14px] text-xs transition-colors ${selected === name ? 'bg-[#1e1e1e] text-[#ccc]' : 'bg-transparent text-[#777] hover:bg-[#2a2a2b] hover:text-[#999]'}`}
+              key={filename}
+              onClick={() => openTab(filename)}
+              className={`flex h-full cursor-pointer items-center gap-1.5 whitespace-nowrap border-r border-[#2d2d2d] px-[10px] pl-[14px] text-xs transition-colors ${selected === filename ? 'bg-[#1e1e1e] text-[#ccc]' : 'bg-transparent text-[#777] hover:bg-[#2a2a2b] hover:text-[#999]'}`}
             >
-              {name}.tsx
+              {filename}
               <span
-                onClick={e => { e.stopPropagation(); closeTab(name) }}
+                onClick={e => { e.stopPropagation(); closeTab(filename) }}
                 className="px-[2px] text-sm leading-none text-[#555] transition-colors hover:text-[#bbb]"
               >
                 ×
@@ -173,6 +177,29 @@ export default function App() {
             onSave={(c) => saveCode(selected, c)}
           />
         )}
+
+        {/* Bottom pill bar */}
+        {(() => {
+          const isTokens = selected === 'tokens.ts'
+          const isDirty = isTokens && code !== savedCode
+          const pillState = tokenSaved ? 'saved' : isDirty ? 'dirty' : 'idle'
+
+          async function handleTokenClick() {
+            if (isDirty) {
+              await saveCode('tokens.ts', code)
+              setTokenSaved(true)
+              setTimeout(() => setTokenSaved(false), 2000)
+            } else {
+              openTab('tokens.ts')
+            }
+          }
+
+          return (
+            <div className="absolute bottom-4 left-0 right-0 flex items-center justify-center pointer-events-none">
+              <TokenPill state={pillState} onClick={handleTokenClick} />
+            </div>
+          )
+        })()}
       </div>
 
       {/* Resize handle */}
@@ -190,9 +217,10 @@ export default function App() {
         <Canvas
           panes={panes}
           setPanes={setPanes}
-          selected={selected}
+          selected={selected ? selected.replace(/\.(tsx|ts)$/, '') : null}
           setSelected={(id) => openTab(`${id}.tsx`)}
           onDelete={deleteComponent}
+          onAddComponent={createComponent}
         />
       </div>
     </div>

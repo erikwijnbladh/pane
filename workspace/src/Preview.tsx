@@ -8,12 +8,14 @@ const Component = componentName
 
 function HeightReporter() {
   useEffect(() => {
+    const root = document.getElementById('root')
+    if (!root) return
     const report = () => {
-      const height = document.body.scrollHeight
+      const height = root.scrollHeight
       window.parent.postMessage({ type: 'pane-resize', name: componentName, height }, '*')
     }
     const observer = new ResizeObserver(report)
-    observer.observe(document.body)
+    observer.observe(root)
     report()
     return () => observer.disconnect()
   }, [])
