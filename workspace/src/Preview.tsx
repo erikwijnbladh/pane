@@ -1,10 +1,8 @@
 import { Suspense, lazy, useEffect } from 'react'
 
-const componentName = new URLSearchParams(window.location.search).get('component')
+const componentName = new URLSearchParams(window.location.search).get('component') || 'Toolbar'
 
-const Component = componentName
-  ? lazy(() => import(`./components/${componentName}.tsx`))
-  : null
+const Component = lazy(() => import(`./components/${componentName}.tsx`))
 
 function HeightReporter() {
   useEffect(() => {
@@ -23,10 +21,6 @@ function HeightReporter() {
 }
 
 export default function Preview() {
-  if (!Component) {
-    return <div className="p-4 text-sm text-neutral-500">No component specified</div>
-  }
-
   return (
     <>
       <HeightReporter />
