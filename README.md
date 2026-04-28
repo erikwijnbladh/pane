@@ -2,7 +2,7 @@
 
 An infinite canvas for building React components. Write code in the editor, see your components live on the canvas.
 
-![Pane](https://github.com/user-attachments/assets/placeholder)
+![Pane](https://github.com/user-attachments/assets/29d974cf-78d4-4f28-8b4c-b7d3c9bbd49e)
 
 ## How it works
 
