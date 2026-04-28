@@ -3,3 +3,5 @@ app/node_modules
 workspace/node_modules
 workspace/package-lock.json
 app/package-lock.json
+app/dist
+workspace/dist

@@ -20,12 +20,13 @@ export default function Toolbar() {
 
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     const currentIndex = tools.findIndex(tool => tool.id === activeTool)
-    const keyDirection = {
+    const keyDirections: Partial<Record<string, -1 | 1>> = {
       ArrowUp: -1,
       ArrowLeft: -1,
       ArrowDown: 1,
       ArrowRight: 1,
-    }[event.key]
+    }
+    const keyDirection = keyDirections[event.key]
 
     if (!keyDirection) return
 
