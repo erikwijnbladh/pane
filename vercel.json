@@ -1,5 +1,12 @@
 {
+  "framework": "vite",
   "installCommand": "npm install",
   "buildCommand": "npm run build --workspace workspace",
-  "outputDirectory": "workspace/dist"
+  "outputDirectory": "workspace/dist",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
 }
