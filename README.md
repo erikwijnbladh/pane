@@ -49,10 +49,9 @@ pane/
     └── src/
         ├── Preview.tsx          # Renders any component by URL param
         └── components/          # Your components live here
-            ├── tokens.ts         # Shared semantic design tokens + recipes
-            ├── TokenSystem.tsx   # Demo showing token blast radius
-            ├── Button.tsx        # Token-driven button primitive + states
-            └── MiniToolbar.tsx   # Toolbar using shared token recipes
+            ├── tokens.ts         # Small shared class tokens for scaffolds
+            ├── Button.tsx        # Root button component
+            └── Toolbar.tsx       # Three-button toolbar using ButtonRoot
 ```
 
 ## Stack
@@ -63,4 +62,4 @@ pane/
 
 ## Token workflow
 
-Open `tokens.ts`, change the Tailwind class recipes, then save. The demo panes import those same recipes, so the canvas shows the blast radius immediately.
+Open `tokens.ts`, change the small shared Tailwind class tokens, then save. New scaffolded components import those same classes.

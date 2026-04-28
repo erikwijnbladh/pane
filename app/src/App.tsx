@@ -1,10 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
 import Canvas from './Canvas'
 import Editor from './Editor'
-import TokenPill from './TokenPill'
 
 const API = 'http://localhost:3001/api'
-const DEMO_ORDER = ['Button.tsx', 'MiniToolbar.tsx', 'TokenSystem.tsx']
+const DEMO_FILES = ['Button.tsx', 'Toolbar.tsx']
 
 function toComponentName(input: string) {
   const cleaned = input
@@ -20,20 +19,14 @@ function toComponentName(input: string) {
 }
 
 function sortFiles(files: string[]) {
-  return [...files].sort((a, b) => {
-    const aIndex = DEMO_ORDER.indexOf(a)
-    const bIndex = DEMO_ORDER.indexOf(b)
-    if (aIndex !== -1 || bIndex !== -1) return (aIndex === -1 ? 99 : aIndex) - (bIndex === -1 ? 99 : bIndex)
-    return a.localeCompare(b)
-  })
+  return [...files].sort((a, b) => a.localeCompare(b))
 }
 
 function initialPaneFor(filename: string, index: number): Pane {
   const name = filename.replace('.tsx', '')
   const presets: Record<string, Partial<Pane>> = {
-    'Button.tsx': { x: 60, y: 80, width: 460, height: 360 },
-    'MiniToolbar.tsx': { x: 60, y: 560, width: 440 },
-    'TokenSystem.tsx': { x: 560, y: 80, width: 500 },
+    'Button.tsx': { x: 80, y: 90, width: 150, height: 130 },
+    'Toolbar.tsx': { x: 280, y: 90, width: 150, height: 160 },
   }
 
   return {
@@ -62,7 +55,6 @@ export default function App() {
   const [openTabs, setOpenTabs] = useState<string[]>([])
   const [code, setCode] = useState('')
   const [savedCode, setSavedCode] = useState('')
-  const [tokenSaved, setTokenSaved] = useState(false)
   const [files, setFiles] = useState<string[]>([])
   const [editorWidth, setEditorWidth] = useState(420)
   const deletedStack = useRef<{ name: string; content: string; pane: Pane }[]>([])
@@ -105,7 +97,7 @@ export default function App() {
     const res = await fetch(`${API}/files`)
     const data: string[] = sortFiles(await res.json())
     setFiles(data)
-    setPanes(data.map(initialPaneFor))
+    setPanes(data.filter(file => DEMO_FILES.includes(file)).map(initialPaneFor))
     openTab('tokens.ts')
   }
 
@@ -115,7 +107,6 @@ export default function App() {
     const { content } = await res.json()
     setCode(content)
     setSavedCode(content)
-    setTokenSaved(false)
     setSelected(filename)
     setOpenTabs(prev => prev.includes(filename) ? prev : [...prev, filename])
   }
@@ -155,7 +146,7 @@ export default function App() {
     const name = toComponentName(rawName)
     if (!name) return
     const filename = `${name}.tsx`
-    const content = `import { tokens } from './tokens'\n\nexport default function ${name}() {\n  return (\n    <div className={tokens.layout.frame}>\n      <section className={\`\${tokens.surface.card} \${tokens.layout.section}\`}>\n        <span className={tokens.text.label}>new component</span>\n        <h2 className="text-xl font-bold tracking-normal">${name}</h2>\n        <p className={tokens.text.body}>\n          This component starts with Tailwind token recipes already wired in.\n        </p>\n      </section>\n    </div>\n  )\n}\n`
+    const content = `import { cx, tokens } from './tokens'\n\nexport default function ${name}() {\n  return (\n    <div className={tokens.frame}>\n      <section className={cx(tokens.card, tokens.section)}>\n        <span className={tokens.label}>new component</span>\n        <h2 className="text-xl font-bold tracking-normal">${name}</h2>\n        <p className={tokens.body}>\n          This component starts with the small shared token file wired in.\n        </p>\n      </section>\n    </div>\n  )\n}\n`
     await fetch(`${API}/files/${name}.tsx`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -224,29 +215,6 @@ export default function App() {
             onSave={(c) => saveCode(selected, c)}
           />
         )}
-
-        {/* Bottom pill bar */}
-        {(() => {
-          const isTokens = selected === 'tokens.ts'
-          const isDirty = isTokens && code !== savedCode
-          const pillState = tokenSaved ? 'saved' : isDirty ? 'dirty' : 'idle'
-
-          async function handleTokenClick() {
-            if (isDirty) {
-              await saveCode('tokens.ts', code)
-              setTokenSaved(true)
-              setTimeout(() => setTokenSaved(false), 2000)
-            } else {
-              openTab('tokens.ts')
-            }
-          }
-
-          return (
-            <div className="absolute bottom-4 left-0 right-0 flex items-center justify-center pointer-events-none">
-              <TokenPill state={pillState} onClick={handleTokenClick} />
-            </div>
-          )
-        })()}
       </div>
 
       {/* Resize handle */}

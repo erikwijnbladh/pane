@@ -23,46 +23,6 @@ function ToolbarBtn({ label, onClick, children }: { label: string; onClick: () =
   )
 }
 
-function StepGuide({ onOpenTokens }: { onOpenTokens: () => void }) {
-  const steps = [
-    { n: 1, label: 'tokens', action: onOpenTokens },
-    { n: 2, label: 'edit class' },
-    { n: 3, label: 'save' },
-  ]
-
-  return (
-    <div
-      onMouseDown={e => e.stopPropagation()}
-      className="absolute bottom-4 right-4 z-10 flex max-w-[calc(100%-2rem)] items-center gap-1 rounded-full border border-black/[0.06] bg-white/95 p-1.5 shadow-[0_2px_12px_rgba(0,0,0,0.08)] backdrop-blur"
-    >
-      {steps.map(step => {
-        const content = (
-          <>
-            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-[10px] font-semibold text-white">
-              {step.n}
-            </span>
-            <span className="whitespace-nowrap text-[11px] font-medium text-neutral-600">{step.label}</span>
-          </>
-        )
-
-        return step.action ? (
-          <button
-            key={step.n}
-            onClick={step.action}
-            className="flex items-center gap-1.5 rounded-full px-2 py-1.5 transition-colors hover:bg-neutral-100"
-          >
-            {content}
-          </button>
-        ) : (
-          <div key={step.n} className="flex items-center gap-1.5 rounded-full px-2 py-1.5">
-            {content}
-          </div>
-        )
-      })}
-    </div>
-  )
-}
-
 type Group = {
   id: string
   label: string
@@ -266,8 +226,6 @@ export default function Canvas({ panes, setPanes, selected, setSelected, onDelet
           {darkMode ? <Sun size={16} /> : <Moon size={16} />}
         </ToolbarBtn>
       </div>
-
-      <StepGuide onOpenTokens={onOpenTokens} />
 
       {/* Scale indicator */}
       <div className="absolute right-4 top-3 z-10 select-none font-mono text-xs px-2 py-1 text-neutral-400">
