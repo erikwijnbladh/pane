@@ -10,6 +10,7 @@ An infinite canvas for building React components. Write code in the editor, see 
 - Each component is an iframe pointing at `localhost:5174?component=Name`
 - Vite's HMR means changes appear instantly after Cmd+S
 - Components are plain `.tsx` files on disk — git, imports, and agents all just work
+- Vercel serves the editor app with a bundled static preview at `/preview`
 
 ## Getting started
 
@@ -21,6 +22,14 @@ npm run dev
 ```
 
 Then open **http://localhost:3000**.
+
+For a static production build:
+
+```bash
+npm run build
+```
+
+The build outputs the editor to `app/dist` and copies the workspace preview into `app/dist/preview`. Hosted edits are demo-only/in-memory unless a backend is added.
 
 ## Usage
 
