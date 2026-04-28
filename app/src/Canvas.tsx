@@ -1,5 +1,5 @@
 import { useRef, useState, useCallback, useEffect } from 'react'
-import { LayersPlus } from 'lucide-react'
+import { LayersPlus, Moon, Palette, SquareDashed, Sun } from 'lucide-react'
 import type { Pane } from './App'
 
 function ToolbarBtn({ label, onClick, children }: { label: string; onClick: () => void; children: React.ReactNode }) {
@@ -23,6 +23,46 @@ function ToolbarBtn({ label, onClick, children }: { label: string; onClick: () =
   )
 }
 
+function StepGuide({ onOpenTokens }: { onOpenTokens: () => void }) {
+  const steps = [
+    { n: 1, label: 'tokens', action: onOpenTokens },
+    { n: 2, label: 'edit class' },
+    { n: 3, label: 'save' },
+  ]
+
+  return (
+    <div
+      onMouseDown={e => e.stopPropagation()}
+      className="absolute bottom-4 right-4 z-10 flex max-w-[calc(100%-2rem)] items-center gap-1 rounded-full border border-black/[0.06] bg-white/95 p-1.5 shadow-[0_2px_12px_rgba(0,0,0,0.08)] backdrop-blur"
+    >
+      {steps.map(step => {
+        const content = (
+          <>
+            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-[10px] font-semibold text-white">
+              {step.n}
+            </span>
+            <span className="whitespace-nowrap text-[11px] font-medium text-neutral-600">{step.label}</span>
+          </>
+        )
+
+        return step.action ? (
+          <button
+            key={step.n}
+            onClick={step.action}
+            className="flex items-center gap-1.5 rounded-full px-2 py-1.5 transition-colors hover:bg-neutral-100"
+          >
+            {content}
+          </button>
+        ) : (
+          <div key={step.n} className="flex items-center gap-1.5 rounded-full px-2 py-1.5">
+            {content}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 type Group = {
   id: string
   label: string
@@ -39,9 +79,10 @@ type Props = {
   setSelected: (id: string) => void
   onDelete: (id: string) => void
   onAddComponent: () => void
+  onOpenTokens: () => void
 }
 
-export default function Canvas({ panes, setPanes, selected, setSelected, onDelete, onAddComponent }: Props) {
+export default function Canvas({ panes, setPanes, selected, setSelected, onDelete, onAddComponent, onOpenTokens }: Props) {
   const [offset, setOffset] = useState({ x: 0, y: 0 })
   const [scale, setScale] = useState(1)
   const [isDragging, setIsDragging] = useState(false)
@@ -214,17 +255,19 @@ export default function Canvas({ panes, setPanes, selected, setSelected, onDelet
         <ToolbarBtn label="New component" onClick={onAddComponent}>
           <LayersPlus size={16} />
         </ToolbarBtn>
+        <ToolbarBtn label="Open tokens" onClick={onOpenTokens}>
+          <Palette size={16} />
+        </ToolbarBtn>
         <ToolbarBtn label="Add group" onClick={addGroup}>
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1.75" y="1.75" width="12.5" height="12.5" rx="2" stroke="currentColor" strokeWidth="1.5" strokeDasharray="3 2"/></svg>
+          <SquareDashed size={16} />
         </ToolbarBtn>
         <div className="my-0.5 h-px w-5 bg-neutral-100" />
         <ToolbarBtn label={darkMode ? 'Light workspace' : 'Dark workspace'} onClick={() => setDarkMode(d => !d)}>
-          {darkMode
-            ? <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="3" stroke="currentColor" strokeWidth="1.5"/><path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M3.05 3.05l1.06 1.06M11.89 11.89l1.06 1.06M11.89 4.11l1.06-1.06M3.05 12.95l1.06-1.06" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
-            : <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M13.5 9.5A5.5 5.5 0 0 1 6.5 2.5a5.5 5.5 0 1 0 7 7z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/></svg>
-          }
+          {darkMode ? <Sun size={16} /> : <Moon size={16} />}
         </ToolbarBtn>
       </div>
+
+      <StepGuide onOpenTokens={onOpenTokens} />
 
       {/* Scale indicator */}
       <div className="absolute right-4 top-3 z-10 select-none font-mono text-xs px-2 py-1 text-neutral-400">

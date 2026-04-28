@@ -30,7 +30,7 @@ export default function Preview() {
   return (
     <>
       <HeightReporter />
-      <div style={{ minHeight: 260, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 32 }}>
+      <div style={{ boxSizing: 'border-box', minHeight: 260, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
         <Suspense fallback={null}>
           <Component />
         </Suspense>

@@ -49,8 +49,10 @@ pane/
     └── src/
         ├── Preview.tsx          # Renders any component by URL param
         └── components/          # Your components live here
-            ├── ToolbarButton.tsx # Icon button primitive + state showcase
-            └── MiniToolbar.tsx   # Toolbar using ToolbarButton, arrow key nav
+            ├── tokens.ts         # Shared semantic design tokens + recipes
+            ├── TokenSystem.tsx   # Demo showing token blast radius
+            ├── Button.tsx        # Token-driven button primitive + states
+            └── MiniToolbar.tsx   # Toolbar using shared token recipes
 ```
 
 ## Stack
@@ -58,3 +60,7 @@ pane/
 - **Canvas app** — React, Vite, Tailwind CSS, CodeMirror 6
 - **Workspace** — React, Vite, Tailwind CSS, Lucide React
 - **Server** — Node.js, Express
+
+## Token workflow
+
+Open `tokens.ts`, change the Tailwind class recipes, then save. The demo panes import those same recipes, so the canvas shows the blast radius immediately.

@@ -4,6 +4,48 @@ import Editor from './Editor'
 import TokenPill from './TokenPill'
 
 const API = 'http://localhost:3001/api'
+const DEMO_ORDER = ['Button.tsx', 'MiniToolbar.tsx', 'TokenSystem.tsx']
+
+function toComponentName(input: string) {
+  const cleaned = input
+    .replace(/\.tsx?$/, '')
+    .replace(/[^A-Za-z0-9_ -]/g, ' ')
+    .split(/[\s_-]+/)
+    .filter(Boolean)
+    .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+    .join('')
+
+  if (!cleaned || !/^[A-Za-z]/.test(cleaned)) return null
+  return cleaned
+}
+
+function sortFiles(files: string[]) {
+  return [...files].sort((a, b) => {
+    const aIndex = DEMO_ORDER.indexOf(a)
+    const bIndex = DEMO_ORDER.indexOf(b)
+    if (aIndex !== -1 || bIndex !== -1) return (aIndex === -1 ? 99 : aIndex) - (bIndex === -1 ? 99 : bIndex)
+    return a.localeCompare(b)
+  })
+}
+
+function initialPaneFor(filename: string, index: number): Pane {
+  const name = filename.replace('.tsx', '')
+  const presets: Record<string, Partial<Pane>> = {
+    'Button.tsx': { x: 60, y: 80, width: 460, height: 360 },
+    'MiniToolbar.tsx': { x: 60, y: 560, width: 440 },
+    'TokenSystem.tsx': { x: 560, y: 80, width: 500 },
+  }
+
+  return {
+    id: name,
+    name,
+    x: 60 + (index % 2) * 520,
+    y: 80 + Math.floor(index / 2) * 360,
+    width: 440,
+    height: 260,
+    ...presets[filename],
+  }
+}
 
 export type Pane = {
   id: string
@@ -22,7 +64,7 @@ export default function App() {
   const [savedCode, setSavedCode] = useState('')
   const [tokenSaved, setTokenSaved] = useState(false)
   const [files, setFiles] = useState<string[]>([])
-  const [editorWidth, setEditorWidth] = useState(480)
+  const [editorWidth, setEditorWidth] = useState(420)
   const deletedStack = useRef<{ name: string; content: string; pane: Pane }[]>([])
   const resizing = useRef(false)
   const resizeStart = useRef({ x: 0, width: 0 })
@@ -61,23 +103,19 @@ export default function App() {
 
   async function fetchFiles() {
     const res = await fetch(`${API}/files`)
-    const data: string[] = await res.json()
+    const data: string[] = sortFiles(await res.json())
     setFiles(data)
-    setPanes(data.map((f, i) => ({
-      id: f.replace('.tsx', ''),
-      name: f.replace('.tsx', ''),
-      x: 60 + i * 480,
-      y: 80,
-      width: 460,
-      height: 260,
-    })))
+    setPanes(data.map(initialPaneFor))
+    openTab('tokens.ts')
   }
 
   async function openTab(filename: string) {
     const res = await fetch(`${API}/files/${filename}`)
+    if (!res.ok) return
     const { content } = await res.json()
     setCode(content)
     setSavedCode(content)
+    setTokenSaved(false)
     setSelected(filename)
     setOpenTabs(prev => prev.includes(filename) ? prev : [...prev, filename])
   }
@@ -89,7 +127,13 @@ export default function App() {
         const nextSelected = next.length > 0 ? next[next.length - 1] : null
         setSelected(nextSelected)
         if (nextSelected) {
-          fetch(`${API}/files/${nextSelected}`).then(r => r.json()).then(d => setCode(d.content))
+          fetch(`${API}/files/${nextSelected}`).then(r => r.json()).then(d => {
+            setCode(d.content)
+            setSavedCode(d.content)
+          })
+        } else {
+          setCode('')
+          setSavedCode('')
         }
       }
       return next
@@ -106,17 +150,20 @@ export default function App() {
   }
 
   async function createComponent() {
-    const name = prompt('Component name (e.g. Card):')
+    const rawName = prompt('Component name (e.g. Card):')
+    if (!rawName) return
+    const name = toComponentName(rawName)
     if (!name) return
-    const content = `export default function ${name}() {\n  return (\n    <div className="p-6">\n      ${name}\n    </div>\n  )\n}\n`
+    const filename = `${name}.tsx`
+    const content = `import { tokens } from './tokens'\n\nexport default function ${name}() {\n  return (\n    <div className={tokens.layout.frame}>\n      <section className={\`\${tokens.surface.card} \${tokens.layout.section}\`}>\n        <span className={tokens.text.label}>new component</span>\n        <h2 className="text-xl font-bold tracking-normal">${name}</h2>\n        <p className={tokens.text.body}>\n          This component starts with Tailwind token recipes already wired in.\n        </p>\n      </section>\n    </div>\n  )\n}\n`
     await fetch(`${API}/files/${name}.tsx`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ content }),
     })
-    setFiles(prev => [...prev, `${name}.tsx`])
+    setFiles(prev => sortFiles([...prev, filename]))
     setPanes(prev => [...prev, { id: name, name, x: 60 + prev.length * 480, y: 80, width: 460, height: 260 }])
-    openTab(`${name}.tsx`)
+    openTab(filename)
   }
 
   async function deleteComponent(name: string) {
@@ -221,6 +268,7 @@ export default function App() {
           setSelected={(id) => openTab(`${id}.tsx`)}
           onDelete={deleteComponent}
           onAddComponent={createComponent}
+          onOpenTokens={() => openTab('tokens.ts')}
         />
       </div>
     </div>

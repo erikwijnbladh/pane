@@ -1,85 +1,66 @@
-import { LucideIcon, Loader2, Plus, Trash2, ArrowRight, MousePointer2 } from 'lucide-react'
-import { variant as variants, iconSize } from './tokens'
+import { ArrowRight, Check, Loader2, Plus, Search } from 'lucide-react'
+import { button, cx, tokens, type ButtonSize, type ButtonVariant } from './tokens'
 
-// ─── Base ─────────────────────────────────────────────────────────────────────
-
-type BaseProps = {
-  label: string
-  className: string
-  icon?: LucideIcon
-  iconPos?: 'left' | 'right' | 'only'
+type Props = {
+  children?: React.ReactNode
+  variant?: ButtonVariant
+  size?: ButtonSize
+  icon?: React.ReactNode
+  iconAfter?: React.ReactNode
   loading?: boolean
   disabled?: boolean
-  onClick?: () => void
+  label?: string
+  className?: string
 }
 
-function BaseButton({ label, className, icon: Icon, iconPos, loading = false, disabled = false, onClick }: BaseProps) {
+export function Button({ children, variant = 'primary', size = 'md', icon, iconAfter, loading = false, disabled = false, label, className }: Props) {
   return (
-    <button onClick={onClick} disabled={disabled || loading} aria-label={label} className={className}>
-      {loading && <Loader2 size={iconSize} className="animate-spin" />}
-      {!loading && Icon && (iconPos === 'left' || iconPos === 'only') && <Icon size={iconSize} />}
-      {iconPos !== 'only' && label}
-      {!loading && Icon && iconPos === 'right' && <Icon size={iconSize} />}
+    <button aria-label={label} className={cx(button(variant, size), className)} disabled={disabled || loading}>
+      {loading ? <Loader2 size={14} className="animate-spin" /> : icon}
+      {children}
+      {iconAfter}
     </button>
   )
 }
 
-// ─── Button ───────────────────────────────────────────────────────────────────
-
-type Variant = keyof typeof variants
-
-type Props = {
-  label: string
-  variant?: Variant
-  icon?: LucideIcon
-  loading?: boolean
-  disabled?: boolean
-  onClick?: () => void
-}
-
-export function Button({ label, variant = 'primary', icon, loading, disabled, onClick }: Props) {
-  const { className, icon: iconPos } = variants[variant]
-  return <BaseButton label={label} className={className} icon={icon} iconPos={iconPos} loading={loading} disabled={disabled} onClick={onClick} />
-}
-
-// ─── Demo ─────────────────────────────────────────────────────────────────────
-
-function Labeled({ label, children }: { label: string; children: React.ReactNode }) {
+function DemoRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="flex flex-col items-start gap-1.5">
-      {children}
-      <p className="text-[10px] text-neutral-400">{label}</p>
+    <div className="grid gap-2">
+      <span className={tokens.text.label}>{label}</span>
+      <div className={tokens.space.cluster}>{children}</div>
     </div>
   )
 }
 
 export default function ButtonDemo() {
   return (
-    <div className="flex flex-col gap-4 p-6">
-      <div className="rounded-lg border border-dashed border-neutral-200 p-4">
-        <p className="mb-3 text-xs font-medium text-neutral-400">Variant</p>
-        <div className="flex items-end gap-3">
-          <Labeled label="primary"><Button label="Primary" variant="primary" /></Labeled>
-          <Labeled label="secondary"><Button label="Secondary" variant="secondary" /></Labeled>
-          <Labeled label="tertiary"><Button label="Tertiary" variant="tertiary" /></Labeled>
-          <Labeled label="destructive"><Button label="Delete" variant="destructive" /></Labeled>
+    <div className={tokens.layout.frame}>
+      <div className={`${tokens.surface.card} grid gap-5 p-5`}>
+        <div>
+          <h2 className={tokens.text.title}>Button system</h2>
+          <p className={`${tokens.text.body} mt-1.5`}>
+            Variants, icons, and common states from one Tailwind recipe.
+          </p>
         </div>
-      </div>
-      <div className="rounded-lg border border-dashed border-neutral-200 p-4">
-        <p className="mb-3 text-xs font-medium text-neutral-400">Icon</p>
-        <div className="flex items-end gap-3">
-          <Labeled label="primary-icon"><Button label="Add" variant="primary-icon" icon={Plus} /></Labeled>
-          <Labeled label="primary-icon-left"><Button label="New" variant="primary-icon-left" icon={Plus} /></Labeled>
-          <Labeled label="secondary-icon-right"><Button label="Continue" variant="secondary-icon-right" icon={ArrowRight} /></Labeled>
-          <Labeled label="tertiary-icon"><Button label="Select" variant="tertiary-icon" icon={MousePointer2} /></Labeled>
-        </div>
-      </div>
-      <div className="rounded-lg border border-dashed border-neutral-200 p-4">
-        <p className="mb-3 text-xs font-medium text-neutral-400">States</p>
-        <div className="flex items-end gap-3">
-          <Labeled label="disabled"><Button label="Disabled" disabled /></Labeled>
-          <Labeled label="loading"><Button label="Save" variant="secondary" loading /></Labeled>
-        </div>
+
+        <DemoRow label="variant">
+          <Button icon={<Plus size={14} />}>Primary</Button>
+          <Button variant="secondary">Secondary</Button>
+          <Button variant="ghost">Ghost</Button>
+          <Button variant="danger">Danger</Button>
+        </DemoRow>
+
+        <DemoRow label="icon">
+          <Button variant="secondary" icon={<Check size={14} />}>Leading</Button>
+          <Button variant="secondary" iconAfter={<ArrowRight size={14} />}>Trailing</Button>
+          <Button variant="secondary" className="h-9 w-9 px-0" icon={<Search size={16} strokeWidth={2.2} />} label="Search" />
+        </DemoRow>
+
+        <DemoRow label="state">
+          <Button loading>Loading</Button>
+          <Button variant="secondary" disabled>Disabled</Button>
+          <Button variant="danger" disabled>Disabled danger</Button>
+        </DemoRow>
       </div>
     </div>
   )
