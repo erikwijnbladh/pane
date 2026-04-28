@@ -1,8 +1,12 @@
 import { useState, useEffect, useRef } from 'react'
 import Canvas from './Canvas'
 import Editor from './Editor'
+import { DEMO_FILE_CONTENTS } from './demoFiles'
 
-const API = 'http://localhost:3001/api'
+const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '::1'])
+const IS_DEV_APP = LOCAL_HOSTS.has(window.location.hostname) && window.location.port === '3000'
+const API = IS_DEV_APP ? 'http://localhost:3001/api' : null
+const PREVIEW_URL = IS_DEV_APP ? 'http://localhost:5174' : '/preview/index.html'
 const DEMO_FILES = ['Button.tsx', 'Toolbar.tsx']
 
 function toComponentName(input: string) {
@@ -58,6 +62,7 @@ export default function App() {
   const [files, setFiles] = useState<string[]>([])
   const [editorWidth, setEditorWidth] = useState(420)
   const deletedStack = useRef<{ name: string; content: string; pane: Pane }[]>([])
+  const demoFiles = useRef<Record<string, string>>({ ...DEMO_FILE_CONTENTS })
   const resizing = useRef(false)
   const resizeStart = useRef({ x: 0, width: 0 })
   const editorPanelRef = useRef<HTMLDivElement>(null)
@@ -93,18 +98,61 @@ export default function App() {
     return () => window.removeEventListener('keydown', handler)
   }, [])
 
+  async function listFiles() {
+    if (!API) return sortFiles(Object.keys(demoFiles.current))
+
+    try {
+      const res = await fetch(`${API}/files`)
+      if (!res.ok) throw new Error('Could not list files')
+      return sortFiles(await res.json())
+    } catch {
+      return sortFiles(Object.keys(demoFiles.current))
+    }
+  }
+
+  async function readFile(filename: string) {
+    if (!API) return demoFiles.current[filename] ?? null
+
+    try {
+      const res = await fetch(`${API}/files/${filename}`)
+      if (!res.ok) throw new Error('Could not read file')
+      const { content } = await res.json()
+      return content as string
+    } catch {
+      return demoFiles.current[filename] ?? null
+    }
+  }
+
+  async function writeFile(filename: string, content: string) {
+    demoFiles.current[filename] = content
+
+    if (!API) return
+
+    await fetch(`${API}/files/${filename}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content }),
+    })
+  }
+
+  async function removeFile(filename: string) {
+    delete demoFiles.current[filename]
+
+    if (!API) return
+
+    await fetch(`${API}/files/${filename}`, { method: 'DELETE' })
+  }
+
   async function fetchFiles() {
-    const res = await fetch(`${API}/files`)
-    const data: string[] = sortFiles(await res.json())
+    const data = await listFiles()
     setFiles(data)
     setPanes(data.filter(file => DEMO_FILES.includes(file)).map(initialPaneFor))
     openTab('tokens.ts')
   }
 
   async function openTab(filename: string) {
-    const res = await fetch(`${API}/files/${filename}`)
-    if (!res.ok) return
-    const { content } = await res.json()
+    const content = await readFile(filename)
+    if (content === null) return
     setCode(content)
     setSavedCode(content)
     setSelected(filename)
@@ -118,9 +166,10 @@ export default function App() {
         const nextSelected = next.length > 0 ? next[next.length - 1] : null
         setSelected(nextSelected)
         if (nextSelected) {
-          fetch(`${API}/files/${nextSelected}`).then(r => r.json()).then(d => {
-            setCode(d.content)
-            setSavedCode(d.content)
+          readFile(nextSelected).then(content => {
+            if (content === null) return
+            setCode(content)
+            setSavedCode(content)
           })
         } else {
           setCode('')
@@ -132,11 +181,7 @@ export default function App() {
   }
 
   async function saveCode(filename: string, content: string) {
-    await fetch(`${API}/files/${filename}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ content }),
-    })
+    await writeFile(filename, content)
     setSavedCode(content)
   }
 
@@ -147,35 +192,28 @@ export default function App() {
     if (!name) return
     const filename = `${name}.tsx`
     const content = `import { cx, tokens } from './tokens'\n\nexport default function ${name}() {\n  return (\n    <div className={tokens.frame}>\n      <section className={cx(tokens.card, tokens.section)}>\n        <span className={tokens.label}>new component</span>\n        <h2 className="text-xl font-bold tracking-normal">${name}</h2>\n        <p className={tokens.body}>\n          This component starts with the small shared token file wired in.\n        </p>\n      </section>\n    </div>\n  )\n}\n`
-    await fetch(`${API}/files/${name}.tsx`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ content }),
-    })
-    setFiles(prev => sortFiles([...prev, filename]))
+    await writeFile(filename, content)
+    setFiles(prev => prev.includes(filename) ? prev : sortFiles([...prev, filename]))
     setPanes(prev => [...prev, { id: name, name, x: 60 + prev.length * 480, y: 80, width: 460, height: 260 }])
     openTab(filename)
   }
 
   async function deleteComponent(name: string) {
-    const res = await fetch(`${API}/files/${name}.tsx`)
-    const { content } = await res.json()
+    const filename = `${name}.tsx`
+    const content = await readFile(filename)
+    if (content === null) return
     const pane = panes.find(p => p.id === name)
     if (pane) deletedStack.current.push({ name, content, pane })
-    await fetch(`${API}/files/${name}.tsx`, { method: 'DELETE' })
-    setFiles(prev => prev.filter(f => f !== `${name}.tsx`))
+    await removeFile(filename)
+    setFiles(prev => prev.filter(f => f !== filename))
     setPanes(prev => prev.filter(p => p.id !== name))
-    closeTab(`${name}.tsx`)
+    closeTab(filename)
   }
 
   async function undoDelete() {
     const last = deletedStack.current.pop()
     if (!last) return
-    await fetch(`${API}/files/${last.name}.tsx`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ content: last.content }),
-    })
+    await writeFile(`${last.name}.tsx`, last.content)
     setFiles(prev => [...prev, `${last.name}.tsx`])
     setPanes(prev => [...prev, last.pane])
   }
@@ -237,6 +275,7 @@ export default function App() {
           onDelete={deleteComponent}
           onAddComponent={createComponent}
           onOpenTokens={() => openTab('tokens.ts')}
+          previewUrl={PREVIEW_URL}
         />
       </div>
     </div>

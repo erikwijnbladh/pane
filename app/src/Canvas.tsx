@@ -40,9 +40,10 @@ type Props = {
   onDelete: (id: string) => void
   onAddComponent: () => void
   onOpenTokens: () => void
+  previewUrl: string
 }
 
-export default function Canvas({ panes, setPanes, selected, setSelected, onDelete, onAddComponent, onOpenTokens }: Props) {
+export default function Canvas({ panes, setPanes, selected, setSelected, onDelete, onAddComponent, onOpenTokens, previewUrl }: Props) {
   const [offset, setOffset] = useState({ x: 0, y: 0 })
   const [scale, setScale] = useState(1)
   const [isDragging, setIsDragging] = useState(false)
@@ -321,7 +322,7 @@ export default function Canvas({ panes, setPanes, selected, setSelected, onDelet
             {/* Preview */}
             <iframe
               ref={el => { iframeRefs.current[pane.id] = el }}
-              src={`http://localhost:5174?component=${pane.name}`}
+              src={`${previewUrl}?component=${encodeURIComponent(pane.name)}`}
               className="block w-full border-0"
               title={pane.name}
             />
