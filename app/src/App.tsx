@@ -29,8 +29,8 @@ function sortFiles(files: string[]) {
 function initialPaneFor(filename: string, index: number): Pane {
   const name = filename.replace('.tsx', '')
   const presets: Record<string, Partial<Pane>> = {
-    'Button.tsx': { x: 80, y: 90, width: 150, height: 130 },
-    'Toolbar.tsx': { x: 280, y: 90, width: 150, height: 160 },
+    'Button.tsx': { x: 80, y: 90, width: 420, height: 300 },
+    'Toolbar.tsx': { x: 80, y: 490, width: 560, height: 120 },
   }
 
   return {
@@ -61,6 +61,7 @@ export default function App() {
   const [savedCode, setSavedCode] = useState('')
   const [files, setFiles] = useState<string[]>([])
   const [editorWidth, setEditorWidth] = useState(420)
+  const [liveMode, setLiveMode] = useState(() => localStorage.getItem('pane-live') !== 'off')
   const deletedStack = useRef<{ name: string; content: string; pane: Pane }[]>([])
   const demoFiles = useRef<Record<string, string>>({ ...DEMO_FILE_CONTENTS })
   const resizing = useRef(false)
@@ -68,6 +69,16 @@ export default function App() {
   const editorPanelRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => { fetchFiles() }, [])
+
+  useEffect(() => { localStorage.setItem('pane-live', liveMode ? 'on' : 'off') }, [liveMode])
+
+  // Live mode: debounce-save while typing so HMR cascades edits into every pane
+  useEffect(() => {
+    if (!liveMode || !selected || code === savedCode) return
+    const filename = selected
+    const timer = setTimeout(() => saveCode(filename, code), 500)
+    return () => clearTimeout(timer)
+  }, [code, savedCode, selected, liveMode])
 
   useEffect(() => {
     const onMove = (e: MouseEvent) => {
@@ -151,6 +162,10 @@ export default function App() {
   }
 
   async function openTab(filename: string) {
+    // Flush unsaved edits so switching tabs never silently drops them
+    if (selected && selected !== filename && code !== savedCode) {
+      await saveCode(selected, code)
+    }
     const content = await readFile(filename)
     if (content === null) return
     setCode(content)
@@ -235,12 +250,22 @@ export default function App() {
                 onClick={e => { e.stopPropagation(); closeTab(filename) }}
                 className="px-[2px] text-sm leading-none text-[#555] transition-colors hover:text-[#bbb]"
               >
-                ×
+                {selected === filename && code !== savedCode
+                  ? <span className="text-[9px] leading-none text-[#d7a94c]">●</span>
+                  : '×'}
               </span>
             </div>
           ))}
           <div onClick={createComponent} className="flex h-full shrink-0 cursor-pointer items-center px-3 text-base text-[#555] transition-colors hover:bg-[#2a2a2b] hover:text-[#bbb]">
             +
+          </div>
+          <div
+            onClick={() => setLiveMode(v => !v)}
+            title={liveMode ? 'Live save on — edits save as you type' : 'Live save off — Cmd+S to save'}
+            className={`ml-auto flex h-full shrink-0 cursor-pointer select-none items-center gap-1 px-3 font-mono text-[11px] transition-colors ${liveMode ? 'text-[#d7a94c]' : 'text-[#555] hover:text-[#999]'}`}
+          >
+            <span className={`inline-block h-1.5 w-1.5 rounded-full ${liveMode ? 'bg-[#d7a94c]' : 'bg-[#555]'}`} />
+            live
           </div>
         </div>
 
