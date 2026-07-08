@@ -72,6 +72,19 @@ export default function App() {
 
   useEffect(() => { localStorage.setItem('pane-live', liveMode ? 'on' : 'off') }, [liveMode])
 
+  // Hosted demo: no dev server, so hand each preview iframe the in-memory
+  // files when it asks, and rebroadcast on every save (see broadcastFiles)
+  useEffect(() => {
+    if (API) return
+    const handler = (e: MessageEvent) => {
+      if (e.data?.type === 'pane-ready' && e.source) {
+        ;(e.source as Window).postMessage({ type: 'pane-files', files: { ...demoFiles.current } }, '*')
+      }
+    }
+    window.addEventListener('message', handler)
+    return () => window.removeEventListener('message', handler)
+  }, [])
+
   // Live mode: debounce-save while typing so HMR cascades edits into every pane
   useEffect(() => {
     if (!liveMode || !selected || code === savedCode) return
@@ -134,10 +147,17 @@ export default function App() {
     }
   }
 
+  function broadcastFiles() {
+    const files = { ...demoFiles.current }
+    document.querySelectorAll('iframe').forEach(frame => {
+      ;(frame as HTMLIFrameElement).contentWindow?.postMessage({ type: 'pane-files', files }, '*')
+    })
+  }
+
   async function writeFile(filename: string, content: string) {
     demoFiles.current[filename] = content
 
-    if (!API) return
+    if (!API) return broadcastFiles()
 
     await fetch(`${API}/files/${filename}`, {
       method: 'POST',

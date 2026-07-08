@@ -29,7 +29,9 @@ For a static production build:
 npm run build
 ```
 
-The build outputs the editor to `app/dist` and copies the workspace preview into `app/dist/preview`. Hosted edits are demo-only/in-memory unless a backend is added.
+The build outputs the editor to `app/dist` and copies the workspace preview into `app/dist/preview`.
+
+The hosted build has no dev server, so live editing works differently there: the editor posts the in-memory files into each preview iframe, which transpiles them in the browser (Sucrase) and re-renders, with Tailwind's browser JIT generating CSS for any new classes you type. Edits are in-memory only — refresh resets them unless a backend is added.
 
 ## Usage
 
