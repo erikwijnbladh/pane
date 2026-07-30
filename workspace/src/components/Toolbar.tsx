@@ -1,5 +1,5 @@
 import { useRef, useState, type KeyboardEvent } from 'react'
-import { Hand, MousePointer2, ZoomIn } from 'lucide-react'
+import { Hand, MousePointer2, Save, Share2, Trash2, Undo2, ZoomIn } from 'lucide-react'
 import { ButtonRoot } from './Button'
 
 const tools = [
@@ -8,9 +8,17 @@ const tools = [
   { id: 'zoom', label: 'Zoom', icon: ZoomIn },
 ] as const
 
+// Five use cases of ButtonRoot in one surface:
+// icon-only toggles, disabled, loading, danger, primary icon+text.
 export default function Toolbar() {
   const [activeTool, setActiveTool] = useState<(typeof tools)[number]['id']>('select')
+  const [saving, setSaving] = useState(false)
   const buttonRefs = useRef<(HTMLButtonElement | null)[]>([])
+
+  const save = () => {
+    setSaving(true)
+    setTimeout(() => setSaving(false), 1200)
+  }
 
   const focusTool = (index: number) => {
     const nextTool = tools[index]
@@ -38,21 +46,30 @@ export default function Toolbar() {
     <div
       role="toolbar"
       aria-label="Canvas tools"
-      onKeyDown={onKeyDown}
-      className="inline-flex flex-col gap-1 rounded-xl border border-stone-200 bg-white p-2 shadow-lg"
+      className="inline-flex items-center gap-1 rounded-xl border border-stone-200 bg-white p-2 shadow-lg"
     >
-      {tools.map(({ id, label, icon: Icon }, index) => (
-        <ButtonRoot
-          key={id}
-          ref={element => { buttonRefs.current[index] = element }}
-          aria-label={label}
-          aria-pressed={activeTool === id}
-          active={activeTool === id}
-          onClick={() => setActiveTool(id)}
-        >
-          <Icon size={16} strokeWidth={activeTool === id ? 2.4 : 2} />
-        </ButtonRoot>
-      ))}
+      <div className="inline-flex items-center gap-1" onKeyDown={onKeyDown}>
+        {tools.map(({ id, label, icon: Icon }, index) => (
+          <ButtonRoot
+            key={id}
+            ref={element => { buttonRefs.current[index] = element }}
+            aria-label={label}
+            aria-pressed={activeTool === id}
+            active={activeTool === id}
+            onClick={() => setActiveTool(id)}
+            icon={<Icon size={16} strokeWidth={activeTool === id ? 2.4 : 2} />}
+          />
+        ))}
+      </div>
+
+      <div className="mx-1 h-5 w-px bg-stone-200" />
+
+      <ButtonRoot disabled icon={<Undo2 size={16} />}>Undo</ButtonRoot>
+      <ButtonRoot loading={saving} icon={<Save size={16} />} onClick={save}>
+        {saving ? 'Saving' : 'Save'}
+      </ButtonRoot>
+      <ButtonRoot variant="danger" icon={<Trash2 size={16} />}>Delete</ButtonRoot>
+      <ButtonRoot variant="primary" icon={<Share2 size={16} />}>Share</ButtonRoot>
     </div>
   )
 }
